@@ -14,6 +14,7 @@ import os,sys
 from datetime import date, datetime, time, timedelta
 import logging
 import logging.handlers
+import calendar
 
 #Initial setup
 asx_path = '/home/dave/python/ASXdata/'
@@ -40,7 +41,7 @@ class asx_spreads_grabber():
         self.asx_path = '/home/dave/python/ASXdata/'
         self.asx_path_P = '/home/dave/.gvfs/common on ecomfp01/ASX_daily/'
         self.sites = {'Otahuhu':'http://www.sfe.com.au/content/prices/rtp15ZFEA.html','Benmore':'http://www.sfe.com.au/content/prices/rtp15ZFEE.html'} #,'http://www.asx.com.au/sfe/daily_monthly_reports.htm'}
-        self.warehouse_filename = {'Benmore':self.asx_path + 'futures_spread_benmore.h5','Otahuhu':self.asx_path + 'futures_spread_otahuhu.h5'}
+        self.warehouse_filename = {'Benmore':self.asx_path + 'futures_spread_benmore_new.h5','Otahuhu':self.asx_path + 'futures_spread_otahuhu_new.h5'}
         self.br = mechanize.Browser() # Browser
         self.br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1) # Follows refresh 0 but not hangs on refresh > 0
         self.br.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')] # User-Agent (this is cheating, ok?)
@@ -146,8 +147,13 @@ class asx_spreads_grabber():
                 last_trade_datetime.append('')
         last_trade_datetime = Series(last_trade_datetime,index = df.index)
         df['Last Trade DateTime'] = last_trade_datetime
+        dfT=df.T
+        newnames = dfT.columns.map(lambda x: datetime.date(datetime(int('20' + str(x.split(' ')[1])),self.months[x.split(' ')[0]],calendar.monthrange(int('20' + str(x.split(' ')[1])),self.months[x.split(' ')[0]])[1])).isoformat()) #convert index to datetime.date with last day of the month
+        dfT = dfT.rename_axis(dict(zip(dfT.columns,newnames)),axis=0).sort_index(axis=0)
+        df=dfT.T
         del df['Last Trade Date']
         del df['Last Trade Time']
+
         return df
 
     def update_warehouse(self,ota_or_ben): #first run
