@@ -12,6 +12,8 @@ EE: NZ Electricity Futures (Benmore) (NZ Electricity Futures (Benmore))
 EB: NZ Electricity Strip Futures (Otahuhu) (NZ Electricity Strip Futures (Otahuhu))
 EF: NZ Electricity Strip Futures (Benmore) (NZ Electricity Strip Futures (Benmore))
 
+Run everyday at 5minutes past 9am with the following crontab entry:
+5 9 * * * /usr/bin/python /home/dave/python/ASXdata/asx_data_CRON.py >> /home/dave/python/ASXdata/asx_grabber_CRON.log 2>&1
 '''
 #Lets import modules - thankyou for open source software...
 from pandas import *
