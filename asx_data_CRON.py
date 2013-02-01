@@ -57,9 +57,9 @@ class asx_grabber():
         self.asx_path_P = '/home/dave/.gvfs/common on ecomfp01/ASX_daily/'
         self.url_head = 'http://www.sfe.com.au/Content/reports/'
         self.url_file_head = 'EODWebMarketSummary'
-        self.asx_warehouse_file = 'asx_futures_new.h5'
+        self.asx_warehouse_file = 'asx_futures.h5'
         self.trunk = self.asx_path + 'htm/'
-        self.asx_dirs = {'futures/day':'ZFD','futures/night':'ZFN','futures/total':'ZFT'} #,'options/day':'ZOD','options/night':'ZON','options/total':'ZOT'}
+        self.asx_dirs = {'futures/total':'ZFT'} #{'futures/day':'ZFD','futures/night':'ZFN','futures/total':'ZFT'} #,'options/day':'ZOD','options/night':'ZON','options/total':'ZOT'}
         self.date = datetime.date(datetime.today() - timedelta(days=1)) #this is the date of the download, ie, yesterday's data
         self.br = mechanize.Browser() # Browser
         self.br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1) # Follows refresh 0 but not hangs on refresh > 0
@@ -74,8 +74,8 @@ class asx_grabber():
         
     def get_last_save_date(self): #Return the date of the last htm save 
         x=[]
-        if len(os.listdir(self.trunk + self.asx_dirs.keys()[2])) > 0: #if there exist any files at all
-            for filename in os.listdir(self.trunk + self.asx_dirs.keys()[2]): #/home/humed/python/ASXdata/htm/futures/total/EODWebMarketSummary120910ZFT.htm
+        if len(os.listdir(self.trunk + self.asx_dirs.keys()[0])) > 0: #if there exist any files at all
+            for filename in os.listdir(self.trunk + self.asx_dirs.keys()[0]): #/home/humed/python/ASXdata/htm/futures/total/EODWebMarketSummary120910ZFT.htm
                 if 'Summary' in filename:
                     date_str = filename.split('.')[0].split('Summary')[1][0:6]
                     x.append(date(int('20' + date_str[0:2]),int(date_str[2:4]),int(date_str[4:6])))
@@ -127,35 +127,50 @@ class asx_grabber():
     def update_warehouse(self,tails):
         '''Ok, this works but is extremely inefficient in terms of the amount of drive space required for the panel object - basically its embarassing.  Something is not quite here - probably a user error...'''
         if self.last_date == date(2009,7,14): #Create ASX HDF5 data file for the first time
-           asx_futures_w = HDFStore(self.asx_path + self.asx_warehouse_file,'a') #open the asx data warehouse!
+           asx_futures = HDFStore(self.asx_path + self.asx_warehouse_file) #open the asx data warehouse!
            ota = Panel({self.last_date:self.allasxdata['EA']})
            ben = Panel({self.last_date:self.allasxdata['EE']})
-           asx_futures_w['OTA_' + tails] = ota
-           asx_futures_w['BEN_' + tails] = ben
-           asx_futures_w.close()      
+           asx_futures['OTA_' + tails] = ota
+           asx_futures['BEN_' + tails] = ben
+           asx_futures.close()      
         else:            
-           asx_futures_r = HDFStore(self.asx_path + self.asx_warehouse_file,'r') #open the asx data warehouse!
-           ota = asx_futures_r['OTA_' + tails]     #get ota
-           ben = asx_futures_r['BEN_' + tails]
-           asx_futures_r.close()      
+           tic=time.clock()
+           asx_futures = HDFStore(self.asx_path + self.asx_warehouse_file) #open the asx data warehouse!
+           ota = asx_futures['OTA_' + tails]     #get ota
+           ben = asx_futures['BEN_' + tails]
+           asx_futures.close()   
+           os.remove(self.asx_path + self.asx_warehouse_file)
+           toc=time.clock()
+           info_text = 'Opening ' + self.asx_warehouse_file + ' took %s seconds' % (str(toc-tic))
+           logger.info(info_text)
+           tic=time.clock()
            ota = ota.join(Panel({self.last_date:self.allasxdata['EA']}),how='outer') #join the new data to the exisiting panel data - this took a bit of figuring out. Outer is the union of the indexes so when a new row appears for a new quater, Nulls or NaNs full the remainder of the dataframe
            ben = ben.join(Panel({self.last_date:self.allasxdata['EE']}),how='outer')
-           asx_futures = HDFStore(self.asx_path + self.asx_warehouse_file,'a') #open the asx data warehouse!
+           toc=time.clock()
+           info_text = 'Data join took %s seconds' % (str(toc-tic))
+           logger.info(info_text)
+           tic=time.clock()
+           asx_futures = HDFStore(self.asx_path + self.asx_warehouse_file) #open the asx data warehouse!
            asx_futures['OTA_' + tails] = ota      #overwrite ota_xxx
            asx_futures['BEN_' + tails] = ben 
            asx_futures.close() #closing ASX warehouse
-           #Spit to XLS
-           try:      #to local linux box
-              ota.to_excel(self.asx_path + 'OTA_' + tails + '.xls') #spit to excel
-              ben.to_excel(self.asx_path + 'BEN_' + tails + '.xls')
-           except error_text:
-              logger.error(error_text)
-
-           try:      #to P:/ASX_dailys/
-              ota.to_excel(self.asx_path_P + 'OTA_' + tails + '.xls') #spit to excel
-              ben.to_excel(self.asx_path_P + 'BEN_' + tails + '.xls')
-           except error_text:
-              logger.error(error_text)
+           toc=time.clock()
+           info_text = 'Resaving ' + self.asx_warehouse_file + ' took %s seconds' % (str(toc-tic))
+           logger.info(info_text)
+           to_excel = True
+           if to_excel == True:
+               #Spit to XLS ****THIS IS SLOW**** comment out if updating h5 file
+               try:      #to local linux box
+                  ota.to_excel(self.asx_path + 'OTA_' + tails + '.xls') #spit to excel
+                  ben.to_excel(self.asx_path + 'BEN_' + tails + '.xls')
+               except error_text:
+                 logger.error(error_text)
+   
+               try:      #to P:/ASX_dailys/
+                  ota.to_excel(self.asx_path_P + 'OTA_' + tails + '.xls') #spit to excel
+                  ben.to_excel(self.asx_path_P + 'BEN_' + tails + '.xls')
+               except error_text:
+                  logger.error(error_text)
 
  
             
