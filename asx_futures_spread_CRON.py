@@ -1,3 +1,21 @@
+'''
+ASX hedge market scrapper - automatic monitoring of ASX futures market 
+    Copyright (C) 2013 David Hume, Electricty Authority, New Zealand.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+'''
+
 #Script to monitor trading activity on the ASX NZ Electricity futures at Benmore and Otahuhu
 #
 #Run with the following Cron script, i.e, every 10 minutes between the hours of 9 and 5pm (actual trading occurs between 10:30am and 4pm
