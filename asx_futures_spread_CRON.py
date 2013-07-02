@@ -1,21 +1,3 @@
-'''
-ASX hedge market scrapper - automatic monitoring of ASX futures market 
-    Copyright (C) 2013 David Hume, Electricty Authority, New Zealand.
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
-
 #Script to monitor trading activity on the ASX NZ Electricity futures at Benmore and Otahuhu
 #
 #Run with the following Cron script, i.e, every 10 minutes between the hours of 9 and 5pm (actual trading occurs between 10:30am and 4pm
@@ -35,7 +17,7 @@ import logging.handlers
 import calendar
 
 #Initial setup
-asx_path = '/home/dave/python/ASXdata/'
+asx_path = '/home/dave/python/ASX_data/'
 os.chdir(asx_path)
 
 formatter = logging.Formatter('|%(asctime)-6s|%(message)s|','%Y-%m-%d %H:%M')
@@ -56,8 +38,9 @@ logger.setLevel(logging.INFO)
 class asx_spreads_grabber():
    
     def __init__(self):
-        self.asx_path = '/home/dave/python/ASXdata/'
-        self.asx_path_P = '/home/dave/.gvfs/common on ecomfp01/ASX_daily/'
+        self.asx_path = '/home/dave/python/ASX_data/'
+        #self.asx_path_P = '/home/dave/.gvfs/common on ecomfp01/ASX_daily/'
+        self.asx_path_P = '/run/user/dave/gvfs/smb-share:server=ecomfp01,share=common/ASX_daily/'
         self.sites = {'Otahuhu':'http://www.sfe.com.au/content/prices/rtp15ZFEA.html','Benmore':'http://www.sfe.com.au/content/prices/rtp15ZFEE.html'} #,'http://www.asx.com.au/sfe/daily_monthly_reports.htm'}
         self.warehouse_filename = {'Benmore':self.asx_path + 'futures_spread_benmore_new.h5','Otahuhu':self.asx_path + 'futures_spread_otahuhu_new.h5'}
         self.br = mechanize.Browser() # Browser
@@ -191,8 +174,11 @@ class asx_spreads_grabber():
             warehouse = HDFStore(self.warehouse_filename[ota_or_ben],'a') #open the asx data warehouse!
             warehouse[ota_or_ben] = data      #overwrite ota_xxx
             warehouse.close()      
-            data.to_excel(self.asx_path_P + ota_or_ben + '.xls') #spit to ASX_daily on P drive
-            data.to_excel(self.asx_path + ota_or_ben + '.xls') #spit to local
+            #There is an error in xlxw that returns a ValueError: More than 4094 XFs (styles) with greater than ~1350 sheets
+            #For now we will limit the number of sheets to this. 
+            logger.info('Saving data to ' + self.asx_path_P + ota_or_ben + '.xls')
+            data.loc[data.items[-1350:]].to_excel(self.asx_path_P + ota_or_ben + '.xls') #spit to ASX_daily on P drive
+            data.loc[data.items[-1350:]].to_excel(self.asx_path + ota_or_ben + '.xls') #spit to local
 
         self.asx_futures[ota_or_ben].to_csv(self.last_check[ota_or_ben])
             
@@ -228,5 +214,6 @@ class asx_spreads_grabber():
 
 if __name__ == '__main__':
    asx_grab = asx_spreads_grabber()
-   axsdata = asx_grab.get_asx_spreads()    
+   axsdata = asx_grab.get_manual_asx_spreads()    
+   #axsdata = asx_grab.get_asx_spreads()    
 

@@ -49,7 +49,7 @@ import calendar
 import StringIO
 
 #Initial setup
-asx_path = '/home/dave/python/ASXdata/'
+asx_path = '/home/dave/python/ASX_data/'
 os.chdir(asx_path)
 
 formatter = logging.Formatter('|%(asctime)-6s|%(message)s|','%Y-%m-%d %H:%M')
@@ -70,8 +70,9 @@ logger.setLevel(logging.INFO)
 class asx_grabber():
    
     def __init__(self):
-        self.asx_path = '/home/dave/python/ASXdata/'
-        self.asx_path_P = '/home/dave/.gvfs/common on ecomfp01/ASX_daily/'
+        self.asx_path = '/home/dave/python/ASX_data/'
+        self.asx_path_P = '/run/user/dave/gvfs/smb-share:server=ecomfp01,share=common/ASX_daily/'
+        #self.asx_path_P = '/home/dave/.gvfs/common on ecomfp01/ASX_daily/'
         self.url_head = 'http://www.sfe.com.au/Content/reports/'
         self.url_file_head = 'EODWebMarketSummary'
         self.asx_warehouse_file = 'asx_futures.h5'
