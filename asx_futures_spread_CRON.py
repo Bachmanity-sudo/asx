@@ -15,6 +15,8 @@ from datetime import date, datetime, time, timedelta
 import logging
 import logging.handlers
 import calendar
+import warnings
+warnings.filterwarnings('ignore',category=pandas.io.pytables.PerformanceWarning)
 
 #Initial setup
 asx_path = '/home/dave/python/ASX_data/'
@@ -42,7 +44,7 @@ class asx_spreads_grabber():
         #self.asx_path_P = '/home/dave/.gvfs/common on ecomfp01/ASX_daily/'
         self.asx_path_P = '/run/user/dave/gvfs/smb-share:server=ecomfp01,share=common/ASX_daily/'
         self.sites = {'Otahuhu':'http://www.sfe.com.au/content/prices/rtp15ZFEA.html','Benmore':'http://www.sfe.com.au/content/prices/rtp15ZFEE.html'} #,'http://www.asx.com.au/sfe/daily_monthly_reports.htm'}
-        self.warehouse_filename = {'Benmore':self.asx_path + 'futures_spread_benmore_new.h5','Otahuhu':self.asx_path + 'futures_spread_otahuhu_new.h5'}
+        self.warehouse_filename = {'Benmore':self.asx_path + 'futures_spread_ben.h5','Otahuhu':self.asx_path + 'futures_spread_ota.h5'}
         self.br = mechanize.Browser() # Browser
         self.br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1) # Follows refresh 0 but not hangs on refresh > 0
         self.br.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')] # User-Agent (this is cheating, ok?)
@@ -104,6 +106,30 @@ class asx_spreads_grabber():
             htmltext = r.read() #read website html
             self.asx_futures[sitename] = self.get_asx_table(htmltext)
 
+    def type_changer(self,df):
+        '''Function to change data types suitable for hdf5 storage'''
+        def type_change(x):    
+            def value_change(x):
+                if type(x) is unicode:
+                    if x != '':
+                        return float(x)
+                    if x == '':
+                        return np.NaN
+                elif type(x) == datetime:
+                    return str(x)
+                else:
+                    return x
+            return x.map(lambda x: value_change(x))
+
+        def utf8_ascii(x):
+            udata=x.decode("utf-8")
+            return udata.encode("ascii","ignore")
+		
+        df = df.apply(type_change)
+        df['Last Trade DateTime'] = df['Last Trade DateTime'].map(lambda x: str(x).replace('nan','')) 
+        df = df.rename(columns = dict(zip(df.columns,df.columns.map(lambda x: utf8_ascii(x)))),index = dict(zip(df.index,df.index.map(lambda x: utf8_ascii(x)))))
+        return df
+        
     def get_asx_table(self,htmltext):
         soup = BeautifulSoup(htmltext)
         body = soup.html.body
@@ -111,6 +137,7 @@ class asx_spreads_grabber():
         tables_by_id = self.get_table_by_id(tables)
         asx_table = tables_by_id['table_1']
         frame = self.scrape_asx_table(asx_table)
+        frame = self.type_changer(frame)
         return frame
 
     def scrape_asx_table(self,asx_table):
@@ -124,7 +151,7 @@ class asx_spreads_grabber():
             for entry in entries:
                 if self._get_attr(entry, 'class') == 'td_spacer':
                     continue
-                row_data.append(entry.text.replace(',',u'').replace(u'\xa0',u''))
+                row_data.append(entry.text.replace(',','').replace(u'\xa0',''))
             all_data.append(row_data)
     
         converted = {}
@@ -154,7 +181,6 @@ class asx_spreads_grabber():
         df=dfT.T
         del df['Last Trade Date']
         del df['Last Trade Time']
-
         return df
 
     def update_warehouse(self,ota_or_ben): #first run
@@ -167,13 +193,11 @@ class asx_spreads_grabber():
             warehouse.close()      
         else:
             #logger.info('Opening and updating existing database @ ' + self.warehouse_filename[ota_or_ben])
-            warehouse = HDFStore(self.warehouse_filename[ota_or_ben],'r') #open the asx data warehouse!
-            data = warehouse[ota_or_ben]     #get data
-            warehouse.close()      
+            data = read_hdf(self.warehouse_filename[ota_or_ben],ota_or_ben) #open the asx data warehouse!
             data = data.join(Panel({df_key:self.asx_futures[ota_or_ben]}),how='outer') #join the new data to the exisiting panel data - this took a bit of figuring out. Outer is the union of the indexes so when a new row appears for a new quater, Nulls or NaNs full the remainder of the dataframe
-            warehouse = HDFStore(self.warehouse_filename[ota_or_ben],'a') #open the asx data warehouse!
-            warehouse[ota_or_ben] = data      #overwrite ota_xxx
-            warehouse.close()      
+            data.to_hdf(self.warehouse_filename[ota_or_ben],ota_or_ben) #open the asx data warehouse!
+            #warehouse[ota_or_ben] = data      #overwrite ota_xxx
+            #warehouse.close()      
             #There is an error in xlxw that returns a ValueError: More than 4094 XFs (styles) with greater than ~1350 sheets
             #For now we will limit the number of sheets to this. 
             logger.info('Saving data to ' + self.asx_path_P + ota_or_ben + '.xls')
@@ -214,6 +238,6 @@ class asx_spreads_grabber():
 
 if __name__ == '__main__':
    asx_grab = asx_spreads_grabber()
-   axsdata = asx_grab.get_manual_asx_spreads()    
-   #axsdata = asx_grab.get_asx_spreads()    
+   #axsdata = asx_grab.get_manual_asx_spreads()    
+   axsdata = asx_grab.get_asx_spreads()    
 
