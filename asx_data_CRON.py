@@ -30,7 +30,7 @@ EB: NZ Electricity Strip Futures (Otahuhu) (NZ Electricity Strip Futures (Otahuh
 EF: NZ Electricity Strip Futures (Benmore) (NZ Electricity Strip Futures (Benmore))
 
 Run everyday at 5minutes past 9am with the following crontab entry:
-5 9 * * * /usr/bin/python /home/dave/python/ASXdata/asx_data_CRON.py >> /home/dave/python/ASXdata/asx_grabber_CRON.log 2>&1
+5 9 * * * /usr/bin/python /home/dave/python/asx/asx_data_CRON.py >> /home/dave/python/asx/asx_grabber_CRON.log 2>&1
 '''
 #Lets import modules - thankyou for open source software...
 from pandas import *
@@ -49,7 +49,7 @@ import calendar
 import StringIO
 
 #Initial setup
-asx_path = '/home/dave/python/ASX_data/'
+asx_path = '/home/dave/python/asx/'
 os.chdir(asx_path)
 
 formatter = logging.Formatter('|%(asctime)-6s|%(message)s|','%Y-%m-%d %H:%M')
@@ -70,7 +70,7 @@ logger.setLevel(logging.INFO)
 class asx_grabber():
    
     def __init__(self):
-        self.asx_path = '/home/dave/python/ASX_data/'
+        self.asx_path = '/home/dave/python/asx/'
         self.asx_path_P = '/run/user/dave/gvfs/smb-share:server=ecomfp01,share=common/ASX_daily/'
         #self.asx_path_P = '/home/dave/.gvfs/common on ecomfp01/ASX_daily/'
         self.url_head = 'http://www.sfe.com.au/Content/reports/'
