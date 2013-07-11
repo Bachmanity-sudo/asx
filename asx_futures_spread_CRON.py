@@ -19,7 +19,7 @@ import warnings
 warnings.filterwarnings('ignore',category=pandas.io.pytables.PerformanceWarning)
 
 #Initial setup
-asx_path = '/home/dave/python/ASX_data/'
+asx_path = '/home/dave/python/asx/'
 os.chdir(asx_path)
 
 formatter = logging.Formatter('|%(asctime)-6s|%(message)s|','%Y-%m-%d %H:%M')
@@ -40,8 +40,7 @@ logger.setLevel(logging.INFO)
 class asx_spreads_grabber():
    
     def __init__(self):
-        self.asx_path = '/home/dave/python/ASX_data/'
-        #self.asx_path_P = '/home/dave/.gvfs/common on ecomfp01/ASX_daily/'
+        self.asx_path = '/home/dave/python/asx/'
         self.asx_path_P = '/run/user/dave/gvfs/smb-share:server=ecomfp01,share=common/ASX_daily/'
         self.sites = {'Otahuhu':'http://www.sfe.com.au/content/prices/rtp15ZFEA.html','Benmore':'http://www.sfe.com.au/content/prices/rtp15ZFEE.html'} #,'http://www.asx.com.au/sfe/daily_monthly_reports.htm'}
         self.warehouse_filename = {'Benmore':self.asx_path + 'futures_spread_ben.h5','Otahuhu':self.asx_path + 'futures_spread_ota.h5'}
