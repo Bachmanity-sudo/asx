@@ -1,6 +1,6 @@
 '''
 ASX web scrapper - automatic monitoring of ASX futures market 
-
+Copyright (C) 2013 Electricty Authority, New Zealand.
 
 This is used to scrape the ASX data htm table into its separate sub tables.
 The subtables, since 14/7/2009 included the Benmore and Otahuhu AXS futures prices
