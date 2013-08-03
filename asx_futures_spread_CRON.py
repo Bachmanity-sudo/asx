@@ -1,5 +1,5 @@
 #Script to monitor trading activity on the ASX NZ Electricity futures at Benmore and Otahuhu
-#
+#Copyright (C) 2013 Electricty Authority, New Zealand.
 #Run with the following Cron script, i.e, every 10 minutes between the hours of 9 and 5pm (actual trading occurs between 10:30am and 4pm
 #*/10 9-17 * * * /usr/bin/python /home/dave/python/ASXdata/asx_futures_spread_CRON.py >> /home/dave/python/ASXdata/asx_futures_spread_CRON.log 2>&1
 
